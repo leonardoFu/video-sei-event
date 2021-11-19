@@ -2,11 +2,11 @@
 
 # Introduction
 
-In these years, interactions are frequently used on live activities. Such as shop tickets and Livestreaming quiz and so on. The most convenient way to keep activities sync with livestream is to use SEI (Supplemental Enhancement Information) of H.264. 
+In these years, interactions are frequently used in live activities. Such as shop tickets and Livestreaming quiz and so on. The most convenient way to keep activities sync with livestream is to use SEI (Supplemental Enhancement Information) of H.264. 
 
-When we use MSE to play livestream, it's easy to get access to h.264 NAL units by demux live video format. but when we use IOS Safari or other Webview on IOS, we can only use `<video src="{HLS_URL}">` to play live stream. So there is no chance that we can get access to the raw content of live stream (for example, sei).
+When we use MSE to play livestream, it's easy to get access to H.264 NAL units by demux live video format. but when we use iOS Safari or WebView on iOS, we can only use `<video src="{HLS_URL}">` to play live stream. So there is no chance that we can get access to the raw content of live stream (for example, SEI).
 
-We propose a new `sei` event to solve this problem
+We propose a new `sei` event to solve this problem.
 
 
 # Use cases
