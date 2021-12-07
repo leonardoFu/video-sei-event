@@ -11,13 +11,13 @@ We propose a new `sei` event to solve this problem.
 
 # Use cases
 
-activities that use SEI to keep user sync with live stream. websites can get SEI information when specific NAL unit being  rendered.
+activities that use SEI to keep user sync with live stream. websites can get SEI information when specific NAL unit getting parsed in <video />.
 
 calculating end-to-end delay between the host and user.
 
 AI based subtitles with livestream, we can get realtime subtitles and put it into H.264 by SEI
 
-
+AI based body or face recognation, we can use it to render plugins beside it.
 
 
 # Proposed API
@@ -25,6 +25,7 @@ AI based subtitles with livestream, we can get realtime subtitles and put it int
 ```Javascript
 interface SEIEvent {
   type: 'sei',
+  timestamp: number,
   data: Uint8Array
 };
 ```
@@ -39,8 +40,15 @@ interface SEIEvent {
   
   video.addEventListener('sei', (e) => {
     const seiData = e.data;
+    const timestamp = e.timestamp;
+    
     const interactionData = parseSEI(seiData);
-    // Notice! a red envelop received!
+    
+    const currentTime = video.currentTime;
+    // use timestamp to sync SEI with livestream
+    setTimeout(() => {
+      renderInteraction(interactionData);
+    }, (timestamp - currentTime) * 1000)
   })
 ```
 
