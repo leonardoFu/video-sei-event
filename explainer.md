@@ -11,7 +11,7 @@ We propose a new `sei` event to solve this problem.
 
 # Use cases
 
-activities that use SEI to keep user sync with live stream. websites can get SEI information when specific NAL unit getting parsed in <video />.
+activities that use SEI to keep user sync with live stream. websites can get SEI information when specific NAL unit getting parsed in `<video />`.
 
 calculating end-to-end delay between the host and user.
 
@@ -24,9 +24,10 @@ AI based body or face recognation, we can use it to render plugins beside it.
 
 ```Javascript
 interface SEIEvent {
-  type: 'sei',
-  timestamp: number,
-  data: Uint8Array
+  type: 'sei';
+  timestamp: number;
+  byteLength: number;
+  copyTo: (dest: Uint8Array) => void 
 };
 ```
 
@@ -39,7 +40,8 @@ interface SEIEvent {
   video.play();
   
   video.addEventListener('sei', (e) => {
-    const seiData = e.data;
+    const seiData = new Uint8Array(e.byteLength);
+    e.copyTo(seiData);
     const timestamp = e.timestamp;
     
     const interactionData = parseSEI(seiData);
@@ -52,6 +54,12 @@ interface SEIEvent {
   })
 ```
 
+# Limitation
+## Not available when using with EME
+If you are using EME for encrypted media source playback, SEI data may not be accessible, because EME module only emits decoded video frame, not AVC samples
+
+## Not suitable for high accuracy scenes
+We get the sei timestamp when parsing the AVC bitstream, but when rendering, it's difficult to sync SEI with the exact frame. So if you want to render SEI information and concern about the synchronization between video frame and SEI, we suggest you to carry the SEI data only using Keyframe.
 
 
 # Implementation Details
