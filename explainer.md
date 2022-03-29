@@ -10,7 +10,7 @@ We propose a new `sei` event to solve this problem.
 
 ## Key-use cases
 
-* Render element synchronously with video frame in <video />
+* Render element synchronously with video frame in `<video>` elements
 * Calculate end to end delay from broadcaster to client
 * Get activity message which was sent by broadcaster
 * Get speaker information when watching live stream from video conference
@@ -19,11 +19,11 @@ We propose a new `sei` event to solve this problem.
 
 ## Proposed Solution
 
-Get SEI information from web video, with loose accurate timestamp information so we can use it to sync with video.currentTime.
+Get SEI information from web video, with loose accurate timestamp information so we can use it to sync with `video.currentTime`.
 
-Can be used with [Media Source Extensions™ (w3.org)](https://www.w3.org/TR/media-source-2/),  parse the livestream by a javascript demuxer and a remuxer, to get the fmp4 stream with SEI data . And SEI event would be triggered when Web Video parsing the H.264 nals
+Can be used with [Media Source Extensions™ (w3.org)](https://www.w3.org/TR/media-source-2/),  parse the livestream by a JavaScript demuxer and a remuxer, to get the fmp4 stream with SEI data. And SEI event would be triggered when Web Video parsing the H.264 NALs.
 
-Can be used with both WebCodecs API and [Media Source Extensions™ (w3.org)](https://www.w3.org/TR/media-source-2/) , demux live stream and generate EncodedVideoChunks, and pass it to SourceBuffer directly.
+Can be used with both WebCodecs API and [Media Source Extensions™ (w3.org)](https://www.w3.org/TR/media-source-2/) , demux live stream and generate `EncodedVideoChunks`, and pass it to `SourceBuffer` directly.
 
 
 
