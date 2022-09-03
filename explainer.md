@@ -93,6 +93,7 @@ function draw(now, metadata) {
 video.requestVideoFrameCallback(draw);
 ```
 
+
 ## Limitation
 
 ### Not available when using with EME
@@ -102,7 +103,7 @@ If you are using EME for encrypted media source playback, SEI data may not be ac
 We get the sei timestamp when parsing the AVC bitstream, but when rendering, it's difficult to sync SEI with the exact frame. So if you want to render SEI information and concern about the synchronization between video frame and SEI, we suggest you to carry the SEI data only using Keyframe.
 
 ### Performance issues
-As some application inject SEI to every frame
+As some application inject SEI to every frame, event and callback is not a good way to access SEI, or it would block the javascript main thread.
 
 # Proposed#2 Use DataCue
 DataCue is a proposed web API to allow support for timed metadata, i.e., metadata information that is synchronized to audio or video media.
