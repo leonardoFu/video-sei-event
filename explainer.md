@@ -157,4 +157,4 @@ What proposal to use is depends on the frequency of SEI message and  and the acc
 
 If you want to use SEI message in a per-frame frequency, DataCue is good for you, and no need to listen to the addcue event, use textTrack.activeCues is good for you. 
 
-If you want to render SEI with the exact frame, maybe you can use the WebCodecs so you can control the rendering. Or you can use sei event with rvfc to reduce the margin of unsync to 1~2 frame. If you can accept the error of 200~300ms
+If you want to render SEI with the exact frame, maybe you can use the WebCodecs so you can control the rendering. Or you can use sei event with rvfc to reduce the margin of unsync to 1 or 2 frame. If you can accept the error of 200 to 300ms
