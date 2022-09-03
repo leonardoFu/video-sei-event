@@ -1,12 +1,15 @@
 # video SEI event Explainer
 
+## What is SEI
+SEI is defined as User Data message in video bitstream. we can use it to transmit data with video content.
+
 ## Problem and Motivation
 
 In these years, interactions are frequently used in live activities. Such as shop tickets and Livestreaming quiz and so on. The most convenient way to keep activities sync with livestream is to use SEI (Supplemental Enhancement Information) of H.264. 
 
 When we use MSE to play livestream, it's easy to get access to H.264 NAL units by demux live video format. but when we use iOS Safari or WebView on iOS, we can only use `<video src="{HLS_URL}">` to play live stream. So there is no chance that we can get access to the raw content of live stream (for example, SEI).
 
-We propose a new `sei` event to solve this problem.
+Therefore, We propose a new video `sei` event to solve this problem.
 
 ## Key-use cases
 
@@ -32,53 +35,126 @@ Can be used with [Media Source Extensions™ (w3.org)](https://www.w3.org/TR/med
 Can be used with both WebCodecs API and [Media Source Extensions™ (w3.org)](https://www.w3.org/TR/media-source-2/) , demux live stream and generate `EncodedVideoChunks`, and pass it to `SourceBuffer` directly.
 
 
+We can also use WebCodecs to process coded video frames to get the SEI information, a relevant issue is: [here](https://github.com/w3c/webcodecs/issues/198)
 
-
-# Proposed API
-
+# Proposed#1 New video event
+A new SEI event structure is defined as follow: 
 ```Javascript
-interface SEIEvent {
+interface SEIEvent: Event {
   type: 'sei';
-  timestamp: number;
+  mediaTime: number;
   byteLength: number;
   copyTo: (dest: Uint8Array) => void 
 };
 ```
+we can receive this event when video element has parsed SEI information from video bitstream. So we can deal with the event by its attributes and functions.
 
-
-# Example
+* mediaTime: The media presentation timestamp (PTS) in seconds of the frame presented (e.g. its timestamp on the video.currentTime timeline)
+* byteLength: Length of SEI payloaded data in byte
+* copyTo: copy SEI data to a typed array to process it.
+## Example
 
 ```Javascript
-  const video = document.createElement('video');
-  video.src = 'foo.hls';
-  video.play();
-  
+  let seiList = [];  
+
+  function parseSEI () {
+    // parse pre defined SEI structure
+  }
+
+  function renderSEI () {
+    // render SEI content 
+  }
+
   video.addEventListener('sei', (e) => {
     const seiData = new Uint8Array(e.byteLength);
-    e.copyTo(seiData);
-    const timestamp = e.timestamp;
-    
-    const interactionData = parseSEI(seiData);
-    
-    const currentTime = video.currentTime;
-    // use timestamp to sync SEI with livestream
-    setTimeout(() => {
-      renderInteraction(interactionData);
-    }, (timestamp - currentTime) * 1000)
+    e.sei.copyTo(seiData);
+    seiList.push({
+      data: parseSEI(seiData),
+      timestamp: e.timestamp
+    })
+  })
+
+  video.addEventListener('timeupdate', e => {
+    const curTime = e.target.currentTime;
+
+    renderSEI(curTime, seiList);
   })
 ```
 
-# Limitation
+## Work with video rvfc
+The rvfc is a callback triggered when video element had rendered a frame. we can get know of the mediaTime of the frame, to render a accurate SEI data.
 
-## Not available when using with EME
+```js 
+function draw(now, metadata) {
+  const mediaTime = metadata.mediaTime;
+  renderSEI(mediaTime, seiList);
+  video.requestVideoFrameCallback(draw);  
+}
+video.requestVideoFrameCallback(draw);
+```
 
+## Limitation
+
+### Not available when using with EME
 If you are using EME for encrypted media source playback, SEI data may not be accessible, because EME module only emits decoded video frame, not AVC samples
 
-## Not suitable for high accuracy scenes
-
+### Not suitable for high accuracy scenes
 We get the sei timestamp when parsing the AVC bitstream, but when rendering, it's difficult to sync SEI with the exact frame. So if you want to render SEI information and concern about the synchronization between video frame and SEI, we suggest you to carry the SEI data only using Keyframe.
 
+### Performance issues
+As some application inject SEI to every frame
 
-# Implementation Details
+# Proposed#2 Use DataCue
+DataCue is a proposed web API to allow support for timed metadata, i.e., metadata information that is synchronized to audio or video media.
 
-* SEI data includes the whole SEI Nal unit to ensure that user can parse SEI data with SEI Specification
+We can use Datacue to handle the SEI information,When video parsed a SEI nal unit, it would generate a DataCue and add it to textTrack.
+
+## Example
+Here is an example for application to deal with the SEI cue from a video element.
+```js
+const cueEnterHandler = (event) => {
+  const cue = event.target;
+  console.log('cueEnter', cue.startTime, cue.endTime);
+};
+
+const cueExitHandler = (event) => {
+  const cue = event.target;
+  console.log('cueExit', cue.startTime, cue.endTime);
+};
+
+const addCueHandler = (event) => {
+  const cue = event.cue;
+
+  cue.onenter = cueEnterhandler;
+  cue.onexit = cueExitHandler;
+};
+
+const video = document.getElementById('video');
+
+video.textTracks.addEventListener('addtrack', (event) => {
+  const textTrack = event.track;
+
+  if (textTrack.kind === 'metadata') {
+    textTrack.mode = 'hidden';
+
+    textTrack.addEventListener('addcue', addCueHandler);
+  }
+});
+```
+
+When you want to know the all SEI cues in video timeline, you can use activeCues to access them:
+```js
+const metadataTrack = getMetaDataTrack(video)
+const activeCues = metadataTrack.activeCues;
+const seiCues = activeCues.filter(cue => cue.type === 'org.mpeg.sei') // Type used here need to be updated
+```
+
+## Limitation
+A cue should be generated with a non-zero duration, when used for SEI information, the startTime and the endTime may be the same. As far as I have tested on Safari, that wouldn't be an error, but it's also need to be considered when other platform wants to implement DataCue API.
+
+# Recommended usage
+What proposal to use is depends on the frequency of SEI message and  and the accuracy you want.
+
+If you want to use SEI message in a per-frame frequency, DataCue is good for you, and no need to listen to the addcue event, use textTrack.activeCues is good for you. 
+
+If you want to render SEI with the exact frame, maybe you can use the WebCodecs so you can control the rendering. Or you can use sei event with rvfc to reduce the margin of unsync to 1~2 frame. If you can accept the error of 200~300ms
